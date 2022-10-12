@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
 
 public class MainWindow extends JFrame{
     private Toolkit toolkit;
@@ -25,7 +24,7 @@ public class MainWindow extends JFrame{
         confirmButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                imageLabel.setText("I'm working!");
+                System.out.println("Button is working:)");
             }
         });
     }
