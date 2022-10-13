@@ -56,13 +56,18 @@ public class ImageLabel extends JLabel implements MouseListener {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        bfImage.flush();
+        g = bfImage.getGraphics();
+        g.setColor(new Color(15,15,15));
+        g.fillRect(10, 10, 20, 20);
+        g.dispose();
     }
 
     @Override
     public void mouseClicked(MouseEvent e) {
         Point cords = e.getPoint();
         System.out.println("x: " + cords.x + " y: " + cords.y);
-
+        bfImage.flush();
         //Getting the pixel value
         int pixel = bfImage.getRGB(cords.x, cords.y);
 
