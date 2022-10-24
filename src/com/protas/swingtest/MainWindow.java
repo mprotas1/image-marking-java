@@ -44,12 +44,10 @@ public class MainWindow extends JFrame{
                 System.out.println("This button should load image to the imageLabel");
             }
         });
-
         modeButtonRect.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 type = ImageSelectingType.RECTANGLE;
-                System.out.println(type);
             }
         });
         modeButtonOval.addActionListener(new ActionListener() {

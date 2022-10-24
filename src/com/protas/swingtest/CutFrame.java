@@ -11,13 +11,13 @@ public class CutFrame extends JFrame {
     public CutFrame(int width, int height, BufferedImage cutIcon) {
         panel = new JPanel();
         imageLabel = new JLabel(new ImageIcon(cutIcon));
+
         setContentPane(panel);
         panel.add(imageLabel);
+        setTitle("Clip of image");
 
         setSize(width + 100, height + 100);
         setVisible(true);
-        System.out.println("I'm working");
-
     }
 
 }

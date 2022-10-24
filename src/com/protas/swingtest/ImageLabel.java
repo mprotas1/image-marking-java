@@ -113,10 +113,8 @@ public class ImageLabel extends JLabel implements MouseListener {
 
         switch(MainWindow.type) {
             case RECTANGLE:
-                drawRectangle(bfImage, cordsClicked, cordsReleased);
-                new CutFrame(bfImage.getWidth(), bfImage.getHeight(), (BufferedImage) bfImage.getSubimage(cordsClicked.x, cordsClicked.y,
-                        Math.abs(cordsReleased.x - cordsClicked.x),
-                        Math.abs(cordsReleased.y - cordsClicked.y)));
+                // draw RECTANGLE
+                cutRectangle(bfImage, cordsClicked, cordsReleased);
                 break;
             case OVAL:
                 // draw OVAL
@@ -144,15 +142,25 @@ public class ImageLabel extends JLabel implements MouseListener {
 
     }
 
-    private void drawRectangle(BufferedImage image, Point clicked, Point released) {
+    private void cutRectangle(BufferedImage image, Point clicked, Point released) {
         if(cordsReleased.x > cordsClicked.x) { // drawing to the right side of BfImage
+            new CutFrame(bfImage.getWidth(), bfImage.getHeight(),
+                    (BufferedImage) bfImage.getSubimage(cordsClicked.x, cordsClicked.y,
+                            Math.abs(cordsReleased.x - cordsClicked.x),
+                            Math.abs(cordsReleased.y - cordsClicked.y)));
+
             bfImage.createGraphics().drawRect(cordsClicked.x, cordsClicked.y,
                     Math.abs(cordsReleased.x - cordsClicked.x),
                     Math.abs(cordsReleased.y - cordsClicked.y));
         }
 
         if(cordsReleased.x < cordsClicked.x) {
-            bfImage.createGraphics().drawRect(cordsClicked.x, cordsClicked.y,
+            new CutFrame(bfImage.getWidth(), bfImage.getHeight(),
+                    (BufferedImage) bfImage.getSubimage(cordsReleased.x, cordsReleased.y,
+                            Math.abs(cordsReleased.x - cordsClicked.x),
+                            Math.abs(cordsReleased.y - cordsClicked.y)));
+
+            bfImage.createGraphics().drawRect(cordsReleased.x, cordsReleased.y,
                     Math.abs(cordsReleased.x - cordsClicked.x),
                     Math.abs(cordsReleased.y - cordsClicked.y));
         }
