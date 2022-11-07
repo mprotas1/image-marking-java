@@ -2,6 +2,7 @@ package com.protas.swingtest;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -67,6 +68,29 @@ public class MainWindow extends JFrame{
                 System.out.println(type);
             }
         });
+        confirmButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                loadImage();
+            }
+        });
+    }
+
+    private void loadImage() {
+        JFileChooser chooser = new JFileChooser("D:\\Projects\\Java Projects\\swingTest\\resources",
+                FileSystemView.getFileSystemView());
+        int r = chooser.showSaveDialog(null);
+        if(r == JFileChooser.APPROVE_OPTION) {
+            String path = chooser.getSelectedFile().getPath();
+            File file = new File(path);
+            System.out.println(file.getPath());
+            try {
+                ImageLabel.bfImage = ImageIO.read(new File(path));
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+            imageLabel.setIcon(new ImageIcon(ImageLabel.bfImage));
+        }
     }
 }
 

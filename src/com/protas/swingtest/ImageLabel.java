@@ -12,12 +12,13 @@ import java.io.File;
 import java.io.IOException;
 
 public class ImageLabel extends JLabel implements MouseListener, MouseMotionListener {
-    BufferedImage bfImage;
+    public static BufferedImage bfImage;
     private final int imageWidth = 300;
     private final int imageHeight = 300;
     private boolean isImagePressed;
     private Point cordsClicked = null;
     private Point cordsReleased = null;
+    private int[][] magicWandPixelArray;
 
     public ImageLabel() {
         this.addMouseListener(this);
@@ -42,6 +43,8 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
         this.setIcon(new ImageIcon(bfImage));
 
+        magicWandPixelArray = new int[bfImage.getWidth()][bfImage.getHeight()];
+
     }
 
     @Override
@@ -53,6 +56,8 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
     public void mouseClicked(MouseEvent e) {
         // use MagicWand type of selection
         if(MainWindow.type == ImageSelectingType.MAGICWAND) {
+            Point point = e.getPoint();
+            floodFillSelect(point);
             // use MAGIC WAND
         }
     }
@@ -100,34 +105,26 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
         switch(MainWindow.type) {
             case RECTANGLE:
+                // make crop of RECTANGLE
+                new CutFrame(bfImage.getWidth(), bfImage.getHeight(), cutRectangle());
                 // draw RECTANGLE
-                cutRectangle();
+                drawRectangle();
                 break;
             case OVAL:
-                new CutFrame(300, 300, makeOval(bfImage));
+                // make crop of OVAL
+                new CutFrame(bfImage.getWidth(), bfImage.getHeight(), cutOval(bfImage));
+                // draw OVAL
                 drawOval();
-                //cutOval(bfImage, cordsClicked, cordsReleased);
                 break;
             case MAGICWAND:
-                // use MAGIC WAND
+                // make crop of MAGICWAND shape
+                //new CutFrame(bfImage.getWidth(), bfImage.getHeight(), null);
                 break;
+            default:
+                System.out.println("Correct shape is not selected");
         }
     }
 
-    private void drawOval() {
-        if(cordsReleased.x > cordsClicked.x) {
-            bfImage.createGraphics().drawOval(cordsClicked.x, cordsClicked.y,
-                    Math.abs(cordsReleased.x - cordsClicked.x),
-                    Math.abs(cordsReleased.y - cordsClicked.y));
-        }
-
-        if(cordsReleased.x < cordsClicked.x) {
-            bfImage.createGraphics().drawOval(cordsReleased.x, cordsReleased.y,
-                    Math.abs(cordsReleased.x - cordsClicked.x),
-                    Math.abs(cordsReleased.y - cordsClicked.y));
-        }
-        this.repaint();
-    }
 
     @Override
     public void mouseEntered(MouseEvent e) {
@@ -141,7 +138,18 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
     @Override
     public void mouseDragged(MouseEvent e) {
+        cordsReleased = e.getPoint();
+        // create copy of bfImage
+        BufferedImage temp = copyImage(bfImage);
 
+        // draw shape
+        switch(MainWindow.type) {
+            case RECTANGLE:
+                drawRectangle();
+                break;
+        }
+        bfImage = copyImage(temp);
+        this.setIcon(new ImageIcon(bfImage));
     }
 
     @Override
@@ -149,20 +157,26 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
     }
 
-    private void cutRectangle() {
+    private void drawRectangle() {
         int x = (cordsReleased.x > cordsClicked.x) ? cordsClicked.x : cordsReleased.x;
         int y = (cordsReleased.x > cordsClicked.x) ? cordsClicked.y : cordsReleased.y;
-
-        new CutFrame(bfImage.getWidth(), bfImage.getHeight(),
-                bfImage.getSubimage(x, y,
-                        Math.abs(cordsReleased.x - cordsClicked.x),
-                        Math.abs(cordsReleased.y - cordsClicked.y)));
 
         bfImage.createGraphics().drawRect(x, y,
                 Math.abs(cordsReleased.x - cordsClicked.x),
                 Math.abs(cordsReleased.y - cordsClicked.y));
 
         this.repaint();
+    }
+
+    private BufferedImage cutRectangle() {
+        int x = (cordsReleased.x > cordsClicked.x) ? cordsClicked.x : cordsReleased.x;
+        int y = (cordsReleased.x > cordsClicked.x) ? cordsClicked.y : cordsReleased.y;
+
+        BufferedImage output = bfImage.getSubimage(x, y,
+                Math.abs(cordsReleased.x - cordsClicked.x),
+                Math.abs(cordsReleased.y - cordsClicked.y));
+
+        return output;
     }
 
     private void cutOval(BufferedImage image, Point clicked, Point released) {
@@ -194,7 +208,22 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
         new CutFrame(bi.getWidth(), bi.getHeight(), bi);
     }
 
-    public BufferedImage makeOval(BufferedImage input) {
+    private void drawOval() {
+        if(cordsReleased.x > cordsClicked.x) {
+            bfImage.createGraphics().drawOval(cordsClicked.x, cordsClicked.y,
+                    Math.abs(cordsReleased.x - cordsClicked.x),
+                    Math.abs(cordsReleased.y - cordsClicked.y));
+        }
+
+        if(cordsReleased.x < cordsClicked.x) {
+            bfImage.createGraphics().drawOval(cordsReleased.x, cordsReleased.y,
+                    Math.abs(cordsReleased.x - cordsClicked.x),
+                    Math.abs(cordsReleased.y - cordsClicked.y));
+        }
+
+        this.repaint();
+    }
+    public BufferedImage cutOval(BufferedImage input) {
         int width = Math.abs(cordsReleased.x - cordsClicked.x);
         int height = Math.abs(cordsReleased.y - cordsClicked.y);
 
@@ -216,6 +245,22 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
         g.dispose();
 
+        return output;
+    }
+
+    private BufferedImage floodFillSelect(Point position) {
+        BufferedImage output = new BufferedImage(bfImage.getWidth(),
+                bfImage.getHeight(),
+                bfImage.getType());
+
+
+        Graphics2D g2d = output.createGraphics();
+        g2d.dispose();
+
+        //new CutFrame(bfImage.getWidth(), bfImage.getHeight(), output);
+        int pixel = bfImage.getRGB(position.x, position.y);
+        Color color = new Color(pixel, true);
+        System.out.println(color);
         return output;
     }
 
