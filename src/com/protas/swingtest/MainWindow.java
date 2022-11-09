@@ -6,8 +6,12 @@ import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+
+import static com.protas.swingtest.ImageLabel.bfImage;
+import static com.protas.swingtest.ImageLabel.toBufferedImage;
 
 public class MainWindow extends JFrame{
     private Toolkit toolkit;
@@ -85,11 +89,15 @@ public class MainWindow extends JFrame{
             File file = new File(path);
             System.out.println(file.getPath());
             try {
-                ImageLabel.bfImage = ImageIO.read(new File(path));
+
+                Image temp = ImageIO.read(new File(path)).getScaledInstance(300, 300,
+                        Image.SCALE_SMOOTH);
+                ImageLabel.bfImage = toBufferedImage(temp);
+
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }
-            imageLabel.setIcon(new ImageIcon(ImageLabel.bfImage));
+            imageLabel.setIcon(new ImageIcon(bfImage));
         }
     }
 }

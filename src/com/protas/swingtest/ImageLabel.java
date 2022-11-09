@@ -10,6 +10,7 @@ import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.*;
 
 public class ImageLabel extends JLabel implements MouseListener, MouseMotionListener {
     public static BufferedImage bfImage;
@@ -18,7 +19,8 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
     private boolean isImagePressed;
     private Point cordsClicked = null;
     private Point cordsReleased = null;
-    private int[][] magicWandPixelArray;
+    private HashSet<ImagePixel> setOfPoints;
+    private HashMap<Integer, Integer> visited;
 
     public ImageLabel() {
         this.addMouseListener(this);
@@ -43,8 +45,9 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
         this.setIcon(new ImageIcon(bfImage));
 
-        magicWandPixelArray = new int[bfImage.getWidth()][bfImage.getHeight()];
+        setOfPoints = new HashSet<>();
 
+        visited =  new HashMap<>();
     }
 
     @Override
@@ -57,7 +60,6 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
         // use MagicWand type of selection
         if(MainWindow.type == ImageSelectingType.MAGICWAND) {
             Point point = e.getPoint();
-            floodFillSelect(point);
             // use MAGIC WAND
         }
     }
@@ -73,7 +75,6 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
         //Creating a Color object from pixel value
         Color color = new Color(pixel, true);
-
         //Retrieving the R G B values
         int red = color.getRed();
         int green = color.getGreen();
@@ -81,6 +82,9 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
         System.out.println("Pressed - value of pixel: " + pixel);
         System.out.println("Pressed - R: " + red + " G: " + green + " B: " + blue);
+
+
+        System.out.println(colorDistance(color, new Color(254, 254, 18)));
     }
 
     @Override
@@ -117,8 +121,11 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
                 drawOval();
                 break;
             case MAGICWAND:
-                // make crop of MAGICWAND shape
-                //new CutFrame(bfImage.getWidth(), bfImage.getHeight(), null);
+                setOfPoints.clear();
+                floodFill(bfImage, cordsReleased.x, cordsReleased.y);
+                BufferedImage temp = bufferedImageFromArray();
+                new CutFrame(temp.getWidth(), temp.getHeight(),temp);
+                System.out.println(setOfPoints.size());
                 break;
             default:
                 System.out.println("Correct shape is not selected");
@@ -148,6 +155,7 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
                 drawRectangle();
                 break;
         }
+
         bfImage = copyImage(temp);
         this.setIcon(new ImageIcon(bfImage));
     }
@@ -155,6 +163,13 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
     @Override
     public void mouseMoved(MouseEvent e) {
 
+        Point temp1 = e.getPoint();
+        if(isImagePressed) {
+            bfImage.createGraphics().drawRect(cordsClicked.x, cordsClicked.y,
+                    Math.abs(temp1.x - cordsClicked.x),
+                    Math.abs(temp1.y - cordsClicked.y));
+        }
+        this.repaint();
     }
 
     private void drawRectangle() {
@@ -209,17 +224,12 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
     }
 
     private void drawOval() {
-        if(cordsReleased.x > cordsClicked.x) {
-            bfImage.createGraphics().drawOval(cordsClicked.x, cordsClicked.y,
-                    Math.abs(cordsReleased.x - cordsClicked.x),
-                    Math.abs(cordsReleased.y - cordsClicked.y));
-        }
+        int x = (cordsReleased.x > cordsClicked.x) ? cordsClicked.x : cordsReleased.x;
+        int y = (cordsReleased.x > cordsClicked.x) ? cordsClicked.y : cordsReleased.y;
 
-        if(cordsReleased.x < cordsClicked.x) {
-            bfImage.createGraphics().drawOval(cordsReleased.x, cordsReleased.y,
-                    Math.abs(cordsReleased.x - cordsClicked.x),
-                    Math.abs(cordsReleased.y - cordsClicked.y));
-        }
+        bfImage.createGraphics().drawOval(x, y,
+                Math.abs(cordsReleased.x - cordsClicked.x),
+                Math.abs(cordsReleased.y - cordsClicked.y));
 
         this.repaint();
     }
@@ -248,20 +258,49 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
         return output;
     }
 
-    private BufferedImage floodFillSelect(Point position) {
-        BufferedImage output = new BufferedImage(bfImage.getWidth(),
-                bfImage.getHeight(),
-                bfImage.getType());
+    private void floodFillUtil(BufferedImage image, int x, int y, int color)
+    {
+        int threshold = 5;
 
+        ImagePixel pixel = new ImagePixel(new Point(x, y),
+                image.getRGB(x, y));
 
-        Graphics2D g2d = output.createGraphics();
-        g2d.dispose();
+        // Base cases
+        if (x < 0 || x >= image.getWidth() || y < 0 || y >= image.getHeight()) return;
 
-        //new CutFrame(bfImage.getWidth(), bfImage.getHeight(), output);
-        int pixel = bfImage.getRGB(position.x, position.y);
-        Color color = new Color(pixel, true);
-        System.out.println(color);
-        return output;
+        //if(image.getRGB(x, y) != color) return;
+
+        if(setOfPoints.contains(pixel)) return;
+
+        if(visited.containsKey(x) && visited.containsValue(y)) return;
+
+        if((colorDistance(new Color(image.getRGB(x, y), true), new Color(color, true)) >= threshold))
+            return;
+
+        setOfPoints.add(pixel);
+        System.out.println("Added point: " + pixel.getCords() + " to the list with color: "
+                + new Color(pixel.getRgbValue(), true) + " hashCode: "
+                + pixel.hashCode());
+        System.out.println("Size: " + setOfPoints.size());
+
+        // Recur for north, east, south and west
+        floodFillUtil(bfImage, x+1, y, color);
+        floodFillUtil(bfImage, x-1, y, color);
+        floodFillUtil(bfImage, x, y+1, color);
+        floodFillUtil(bfImage, x, y-1, color);
+
+        visited.put(x, y);
+    }
+
+    // It mainly finds the previous color on (x, y) and
+    // calls floodFillUtil()
+    private  void floodFill(BufferedImage image, int x, int y)
+    {
+        int prevC = image.getRGB(x, y);
+
+        //if(prevC != newC) return;
+
+        floodFillUtil(image, x, y, prevC);
     }
 
     // method to copy image
@@ -290,5 +329,22 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
         // Return the buffered image
         return bimage;
+    }
+
+    // method to convert list of ImagePixel points to bufferedImage
+    private BufferedImage bufferedImageFromArray() {
+        BufferedImage output = new BufferedImage(bfImage.getWidth(), bfImage.getHeight(), bfImage.getType());
+        for(ImagePixel pixel : setOfPoints) {
+            output.setRGB(pixel.getCords().x, pixel.getCords().y, pixel.getRgbValue());
+        }
+        return output;
+    }
+
+    public static double colorDistance(Color color1, Color color2) {
+        return Math.sqrt(
+            Math.pow(color1.getRed() - color2.getRed(), 2) +
+                    Math.pow(color1.getGreen() - color2.getGreen(), 2) +
+                    Math.pow(color1.getBlue() - color2.getBlue(), 2)
+        );
     }
 }
