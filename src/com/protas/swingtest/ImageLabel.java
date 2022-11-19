@@ -21,7 +21,7 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
     private Point cordsReleased = null;
     private HashSet<ImagePixel> setOfPoints;
     private HashMap<Integer, Integer> visited;
-
+    public static double threshold = 0.2d;
     public ImageLabel() {
         this.addMouseListener(this);
         this.addMouseMotionListener(this);
@@ -57,11 +57,6 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        // use MagicWand type of selection
-        if(MainWindow.type == ImageSelectingType.MAGICWAND) {
-            Point point = e.getPoint();
-            // use MAGIC WAND
-        }
     }
 
     @Override
@@ -83,52 +78,37 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
         System.out.println("Pressed - value of pixel: " + pixel);
         System.out.println("Pressed - R: " + red + " G: " + green + " B: " + blue);
 
-
-        System.out.println(colorDistance(color, new Color(254, 254, 18)));
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
         isImagePressed = false;
         cordsReleased = e.getPoint();
-        System.out.println("Released - x: " + cordsReleased.x + " y: " + cordsReleased.y);
+        if(cordsReleased.x < bfImage.getWidth() && cordsReleased.y < bfImage.getHeight() && cordsReleased.x != 0 && cordsReleased.y != 0) {
+            System.out.println("Released - x: " + cordsReleased.x + " y: " + cordsReleased.y);
 
-        //Getting the pixel value
-        int pixel = bfImage.getRGB(cordsReleased.x, cordsReleased.y);
+            //Getting the pixel value
+            int pixel = bfImage.getRGB(cordsReleased.x, cordsReleased.y);
 
-        //Creating a Color object from pixel value
-        Color color = new Color(pixel, true);
-
-        //Retrieving the R G B values
-        int red = color.getRed();
-        int green = color.getGreen();
-        int blue = color.getBlue();
-
-        System.out.println("Released - value of pixel: " + pixel);
-        System.out.println("Released - R: " + red + " G: " + green + " B: " + blue);
-
-        switch(MainWindow.type) {
-            case RECTANGLE:
-                // make crop of RECTANGLE
-                new CutFrame(bfImage.getWidth(), bfImage.getHeight(), cutRectangle());
-                // draw RECTANGLE
-                drawRectangle();
-                break;
-            case OVAL:
-                // make crop of OVAL
-                new CutFrame(bfImage.getWidth(), bfImage.getHeight(), cutOval(bfImage));
-                // draw OVAL
-                drawOval();
-                break;
-            case MAGICWAND:
-                setOfPoints.clear();
-                floodFill(bfImage, cordsReleased.x, cordsReleased.y);
-                BufferedImage temp = bufferedImageFromArray();
-                new CutFrame(temp.getWidth(), temp.getHeight(),temp);
-                System.out.println(setOfPoints.size());
-                break;
-            default:
-                System.out.println("Correct shape is not selected");
+            switch(MainWindow.type) {
+                case RECTANGLE:
+                    // make crop of RECTANGLE
+                    new CutFrame(bfImage.getWidth(), bfImage.getHeight(), cutRectangle());
+                    // draw RECTANGLE
+                    drawRectangle();
+                    break;
+                case OVAL:
+                    // make crop of OVAL
+                    new CutFrame(bfImage.getWidth(), bfImage.getHeight(), cutOval(bfImage));
+                    // draw OVAL
+                    drawOval();
+                    break;
+                case MAGICWAND:
+                    bfsFloodFill(bfImage.getWidth(), bfImage.getWidth(), bfImage, cordsReleased.x, cordsReleased.y, pixel);
+                    break;
+                default:
+                    System.out.println("Correct shape is not selected");
+            }
         }
     }
 
@@ -147,29 +127,31 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
     public void mouseDragged(MouseEvent e) {
         cordsReleased = e.getPoint();
         // create copy of bfImage
+        this.setIcon(new ImageIcon(bfImage));
+
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
+
         BufferedImage temp = copyImage(bfImage);
 
+        bfImage = copyImage(temp);
+        this.setIcon(new ImageIcon(bfImage));
         // draw shape
         switch(MainWindow.type) {
             case RECTANGLE:
                 drawRectangle();
                 break;
+            case OVAL:
+                drawOval();
+                break;
         }
-
-        bfImage = copyImage(temp);
-        this.setIcon(new ImageIcon(bfImage));
     }
 
     @Override
     public void mouseMoved(MouseEvent e) {
-
-        Point temp1 = e.getPoint();
-        if(isImagePressed) {
-            bfImage.createGraphics().drawRect(cordsClicked.x, cordsClicked.y,
-                    Math.abs(temp1.x - cordsClicked.x),
-                    Math.abs(temp1.y - cordsClicked.y));
-        }
-        this.repaint();
     }
 
     private void drawRectangle() {
@@ -184,43 +166,18 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
     }
 
     private BufferedImage cutRectangle() {
+
         int x = (cordsReleased.x > cordsClicked.x) ? cordsClicked.x : cordsReleased.x;
         int y = (cordsReleased.x > cordsClicked.x) ? cordsClicked.y : cordsReleased.y;
 
-        BufferedImage output = bfImage.getSubimage(x, y,
-                Math.abs(cordsReleased.x - cordsClicked.x),
-                Math.abs(cordsReleased.y - cordsClicked.y));
-
-        return output;
-    }
-
-    private void cutOval(BufferedImage image, Point clicked, Point released) {
-        int x = clicked.x;
-        int y = clicked.y;
-        int radius = 0;
-        int margin = 1;
-        if(released.x > clicked.x) {
-            radius = 0;
-        }
-        else {
-
+        if (x != 0 && y != 0) {
+            BufferedImage output = bfImage.getSubimage(x, y,
+                    Math.abs(cordsReleased.x - cordsClicked.x),
+                    Math.abs(cordsReleased.y - cordsClicked.y));
+            return output;
         }
 
-        BufferedImage bi = new BufferedImage(2 * radius + (2 * margin), 2 * radius + (2 * margin), BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = bi.createGraphics();
-        g2.translate(bi.getWidth() / 2, bi.getHeight() / 2);
-        //Arc2D myArea = new Arc2D.Float(0 - radius, 0 - radius, 2 * radius, 2 * radius, 0, -360, Arc2D.OPEN);
-        Ellipse2D myEllipse = new Ellipse2D.Float(cordsReleased.x, cordsReleased.y, Math.abs(cordsReleased.x - cordsClicked.x),
-                Math.abs(cordsReleased.y - cordsClicked.y));
-
-        AlphaComposite alphaComposite = AlphaComposite.getInstance(AlphaComposite.CLEAR, 0.0f);
-        g2.setComposite(alphaComposite);
-        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
-
-        g2.setClip(myEllipse);
-        g2.drawImage(image.getSubimage(x - radius, y - radius, x + radius, y + radius), -radius, -radius, this);
-
-        new CutFrame(bi.getWidth(), bi.getHeight(), bi);
+        return null;
     }
 
     private void drawOval() {
@@ -233,6 +190,7 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
         this.repaint();
     }
+
     public BufferedImage cutOval(BufferedImage input) {
         int width = Math.abs(cordsReleased.x - cordsClicked.x);
         int height = Math.abs(cordsReleased.y - cordsClicked.y);
@@ -258,49 +216,122 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
         return output;
     }
 
-    private void floodFillUtil(BufferedImage image, int x, int y, int color)
+    public void bfsFloodFill(int n, int m, BufferedImage image,int x, int y, int color)
     {
-        int threshold = 5;
 
-        ImagePixel pixel = new ImagePixel(new Point(x, y),
-                image.getRGB(x, y));
+        // Visiting array
+        int vis[][] = new int[bfImage.getWidth()][bfImage.getHeight()];
 
-        // Base cases
-        if (x < 0 || x >= image.getWidth() || y < 0 || y >= image.getHeight()) return;
+        // Initializing all as zero
+        for(int i = 0; i <= bfImage.getWidth() - 1; i++){
+            for(int j = 0; j <= bfImage.getHeight() - 1; j++){
+                vis[i][j] = 0;
+            }
+        }
 
-        //if(image.getRGB(x, y) != color) return;
+        // Creating queue for bfs
+        Queue<Pair> obj = new LinkedList<>();
 
-        if(setOfPoints.contains(pixel)) return;
+        // Pushing pair of {x, y}
+        Pair pq=new Pair(x,y);
+        obj.add(pq);
 
-        if(visited.containsKey(x) && visited.containsValue(y)) return;
+        // Marking {x, y} as visited
+        vis[x][y] = 1;
 
-        if((colorDistance(new Color(image.getRGB(x, y), true), new Color(color, true)) >= threshold))
-            return;
+        // Until queue is empty
+        while (!obj.isEmpty())
+        {
+            // Extracting front pair
+            Pair coord = obj.peek();
+            int x1 = coord.first;
+            int y1 = coord.second;
+            int preColor = image.getRGB(x1, y1);
 
-        setOfPoints.add(pixel);
-        System.out.println("Added point: " + pixel.getCords() + " to the list with color: "
-                + new Color(pixel.getRgbValue(), true) + " hashCode: "
-                + pixel.hashCode());
-        System.out.println("Size: " + setOfPoints.size());
+            //image.setRGB(x1, y1, color);
+            setOfPoints.add(new ImagePixel(
+                    new Point(x1, y1), image.getRGB(x1, y1)
+            ));
 
-        // Recur for north, east, south and west
-        floodFillUtil(bfImage, x+1, y, color);
-        floodFillUtil(bfImage, x-1, y, color);
-        floodFillUtil(bfImage, x, y+1, color);
-        floodFillUtil(bfImage, x, y-1, color);
+            // Popping front pair of queue
+            obj.remove();
 
-        visited.put(x, y);
+            // For Upside Pixel or Cell
+            if ((validCoord(x1 + 1, y1, n, m)==1) && vis[x1 + 1][y1] == 0 &&
+                    distanceSquaredPct(new Color(image.getRGB(x1 + 1, y1)), new Color(preColor)) <= threshold)
+            {
+                Pair p = new Pair(x1 +1, y1);
+                obj.add(p);
+                vis[x1 + 1][y1] = 1;
+                ImagePixel pixel = new ImagePixel(
+                        new Point(x1 + 1, y1),
+                        image.getRGB(x1 + 1, y1));
+                setOfPoints.add(pixel);
+            }
+
+            // For Downside Pixel or Cell
+            if ((validCoord(x1 - 1, y1, n, m)==1) && vis[x1 - 1][y1] == 0 &&
+                    distanceSquaredPct(new Color(image.getRGB(x1 - 1, y1)), new Color(preColor)) <= threshold)
+            {
+                Pair p = new Pair(x1 - 1, y1);
+                obj.add(p);
+                vis[x1- 1][y1] = 1;
+                ImagePixel pixel = new ImagePixel(
+                        new Point(x1 - 1, y1),
+                        image.getRGB(x1 - 1, y1));
+                setOfPoints.add(pixel);
+            }
+
+            // For Right side Pixel or Cell
+            if ((validCoord(x1, y1 + 1, n, m)==1) && vis[x1][y1 + 1] == 0 &&
+                    distanceSquaredPct(new Color(image.getRGB(x1, y1 + 1)), new Color(preColor)) <= threshold)
+            {
+                Pair p = new Pair(x1,y1 +1);
+                obj.add(p);
+                vis[x1][y1 + 1] = 1;
+                ImagePixel pixel = new ImagePixel(
+                        new Point(x1, y1 + 1),
+                        image.getRGB(x1, y1 + 1));
+                setOfPoints.add(pixel);
+            }
+
+            // For Left side Pixel or Cell
+            if ((validCoord(x1, y1 - 1, n, m)==1) && vis[x1][y1 - 1] == 0 &&
+                    distanceSquaredPct(new Color(image.getRGB(x1, y1 - 1)), new Color(preColor)) <= threshold)
+            {
+                Pair p = new Pair(x1,y1 -1);
+                obj.add(p);
+                vis[x1][y1 - 1] = 1;
+                ImagePixel pixel = new ImagePixel(
+                        new Point(x1, y1 - 1),
+                        image.getRGB(x1, y1 - 1));
+                setOfPoints.add(pixel);
+            }
+        }
+
+        // Printing The Changed Matrix Of Pixels
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < m; j++)
+            {
+                System.out.print(image.getRGB(x, y));
+            }
+            System.out.println();
+        }
+        System.out.println();
+
+        new CutFrame(image.getWidth(), image.getHeight(), bufferedImageFromArray());
     }
 
-    // It mainly finds the previous color on (x, y) and
-    // calls floodFillUtil()
-    private  void floodFill(BufferedImage image, int x, int y)
+    public static int validCoord(int x, int y, int n, int m)
     {
-        int prevC = image.getRGB(x, y);
-
-        //if(prevC != newC) return;
-
-        floodFillUtil(image, x, y, prevC);
+        if (x < 0 || y < 0) {
+            return 0;
+        }
+        if (x >= n || y >= m) {
+            return 0;
+        }
+        return 1;
     }
 
     // method to copy image
@@ -336,7 +367,9 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
         BufferedImage output = new BufferedImage(bfImage.getWidth(), bfImage.getHeight(), bfImage.getType());
         for(ImagePixel pixel : setOfPoints) {
             output.setRGB(pixel.getCords().x, pixel.getCords().y, pixel.getRgbValue());
+            output.createGraphics().dispose();
         }
+        setOfPoints.clear();
         return output;
     }
 
@@ -347,4 +380,19 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
                     Math.pow(color1.getBlue() - color2.getBlue(), 2)
         );
     }
+
+    public static double distanceSquared(Color a, Color b)
+    {
+        int deltaR = a.getRed() - b.getRed();
+        int deltaG = a.getGreen() - b.getGreen();
+        int deltaB = a.getBlue() - b.getBlue();
+        int deltaAlpha = a.getAlpha() - b.getAlpha();
+        double rgbDistanceSquared = (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB) / 3.0;
+        return deltaAlpha * deltaAlpha / 2.0 + rgbDistanceSquared * a.getAlpha() * b.getAlpha() / (255 * 255);
+    }
+
+    public static double distanceSquaredPct(Color a, Color b ) {
+        return distanceSquared(a, b) / 100.0d;
+    }
 }
+

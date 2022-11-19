@@ -21,6 +21,8 @@ public class CutFrame extends JFrame {
 
         setSize(width + 100, height + 100);
         setVisible(true);
+
+        setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
     }
 
 }
