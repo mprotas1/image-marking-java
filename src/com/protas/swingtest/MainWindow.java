@@ -93,6 +93,7 @@ public class MainWindow extends JFrame{
                 Image temp = ImageIO.read(new File(path)).getScaledInstance(300, 300,
                         Image.SCALE_SMOOTH);
                 ImageLabel.bfImage = toBufferedImage(temp);
+                ImageLabel.bfImageCopy = toBufferedImage(bfImage);
 
             } catch (IOException ex) {
                 throw new RuntimeException(ex);

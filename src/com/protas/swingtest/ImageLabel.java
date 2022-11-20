@@ -7,6 +7,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.util.*;
 
 public class ImageLabel extends JLabel implements MouseListener, MouseMotionListener {
     public static BufferedImage bfImage;
+    public static BufferedImage bfImageCopy;
     private final int imageWidth = 300;
     private final int imageHeight = 300;
     private boolean isImagePressed;
@@ -27,6 +29,7 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
         this.addMouseMotionListener(this);
 
         bfImage = null;
+        bfImageCopy = null;
 
         isImagePressed = false;
 
@@ -41,7 +44,10 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
         Image tempImage = bfImage.getScaledInstance(this.getWidth(), this.getHeight(),
                         Image.SCALE_SMOOTH);
+
         bfImage = toBufferedImage(tempImage);
+
+        bfImageCopy = copyImage(bfImage);
 
         this.setIcon(new ImageIcon(bfImage));
 
@@ -67,29 +73,24 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
         //Getting the pixel value
         int pixel = bfImage.getRGB(cordsClicked.x, cordsClicked.y);
-
-        //Creating a Color object from pixel value
-        Color color = new Color(pixel, true);
-        //Retrieving the R G B values
-        int red = color.getRed();
-        int green = color.getGreen();
-        int blue = color.getBlue();
-
-        System.out.println("Pressed - value of pixel: " + pixel);
-        System.out.println("Pressed - R: " + red + " G: " + green + " B: " + blue);
-
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
         isImagePressed = false;
         cordsReleased = e.getPoint();
-        if(cordsReleased.x < bfImage.getWidth() && cordsReleased.y < bfImage.getHeight() && cordsReleased.x != 0 && cordsReleased.y != 0) {
+        bfImage = copyImage(bfImageCopy);
+
+        if(cordsReleased.x < bfImage.getWidth() &&
+                cordsReleased.y < bfImage.getHeight() &&
+                cordsReleased.x != 0 &&
+                cordsReleased.y != 0) {
             System.out.println("Released - x: " + cordsReleased.x + " y: " + cordsReleased.y);
 
             //Getting the pixel value
             int pixel = bfImage.getRGB(cordsReleased.x, cordsReleased.y);
 
+            this.setIcon(new ImageIcon(bfImage));
             switch(MainWindow.type) {
                 case RECTANGLE:
                     // make crop of RECTANGLE
@@ -112,7 +113,6 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
         }
     }
 
-
     @Override
     public void mouseEntered(MouseEvent e) {
 
@@ -120,14 +120,14 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
     @Override
     public void mouseExited(MouseEvent e) {
-
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
         cordsReleased = e.getPoint();
+
         // create copy of bfImage
-        this.setIcon(new ImageIcon(bfImage));
+        BufferedImage temp = copyImage(bfImage);
 
         try {
             Thread.sleep(10);
@@ -135,10 +135,6 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
             throw new RuntimeException(ex);
         }
 
-        BufferedImage temp = copyImage(bfImage);
-
-        bfImage = copyImage(temp);
-        this.setIcon(new ImageIcon(bfImage));
         // draw shape
         switch(MainWindow.type) {
             case RECTANGLE:
@@ -148,6 +144,10 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
                 drawOval();
                 break;
         }
+        this.setIcon(new ImageIcon(bfImage));
+
+        bfImage = copyImage(bfImageCopy);
+
     }
 
     @Override
@@ -156,11 +156,22 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
     private void drawRectangle() {
         int x = (cordsReleased.x > cordsClicked.x) ? cordsClicked.x : cordsReleased.x;
-        int y = (cordsReleased.x > cordsClicked.x) ? cordsClicked.y : cordsReleased.y;
+        int y = (cordsReleased.y > cordsClicked.y) ? cordsClicked.y : cordsReleased.y;
 
-        bfImage.createGraphics().drawRect(x, y,
+        Graphics2D g = (Graphics2D) bfImage.getGraphics();
+
+        Rectangle2D rect = new Rectangle2D.Float(x, y,
                 Math.abs(cordsReleased.x - cordsClicked.x),
                 Math.abs(cordsReleased.y - cordsClicked.y));
+
+        float[] dash = { 5F, 5F };
+
+        g.setColor(Color.BLACK);
+
+        Stroke dashedStroke = new BasicStroke( 2F, BasicStroke.CAP_SQUARE,
+                BasicStroke.JOIN_MITER, 3F, dash,0F);
+
+        g.fill(dashedStroke.createStrokedShape(rect));
 
         this.repaint();
     }
@@ -168,7 +179,7 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
     private BufferedImage cutRectangle() {
 
         int x = (cordsReleased.x > cordsClicked.x) ? cordsClicked.x : cordsReleased.x;
-        int y = (cordsReleased.x > cordsClicked.x) ? cordsClicked.y : cordsReleased.y;
+        int y = (cordsReleased.y > cordsClicked.y) ? cordsClicked.y : cordsReleased.y;
 
         if (x != 0 && y != 0) {
             BufferedImage output = bfImage.getSubimage(x, y,
@@ -182,11 +193,22 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
 
     private void drawOval() {
         int x = (cordsReleased.x > cordsClicked.x) ? cordsClicked.x : cordsReleased.x;
-        int y = (cordsReleased.x > cordsClicked.x) ? cordsClicked.y : cordsReleased.y;
+        int y = (cordsReleased.y > cordsClicked.y) ? cordsClicked.y : cordsReleased.y;
 
-        bfImage.createGraphics().drawOval(x, y,
+        Graphics2D g = (Graphics2D) bfImage.getGraphics();
+
+        Ellipse2D ellipse =  new Ellipse2D.Float(x, y,
                 Math.abs(cordsReleased.x - cordsClicked.x),
                 Math.abs(cordsReleased.y - cordsClicked.y));
+
+        float[] dash = { 5F, 5F };
+
+        g.setColor(Color.BLACK);
+
+        Stroke dashedStroke = new BasicStroke( 2F, BasicStroke.CAP_SQUARE,
+                BasicStroke.JOIN_MITER, 3F, dash,0F);
+
+        g.fill(dashedStroke.createStrokedShape(ellipse));
 
         this.repaint();
     }
@@ -196,7 +218,7 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
         int height = Math.abs(cordsReleased.y - cordsClicked.y);
 
         int x = (cordsReleased.x > cordsClicked.x) ? cordsClicked.x : cordsReleased.x;
-        int y = (cordsReleased.x > cordsClicked.x) ? cordsClicked.y : cordsReleased.y;
+        int y = (cordsReleased.y > cordsClicked.y) ? cordsClicked.y : cordsReleased.y;
 
         BufferedImage output = new BufferedImage(width, height,
                 BufferedImage.TYPE_INT_ARGB);
