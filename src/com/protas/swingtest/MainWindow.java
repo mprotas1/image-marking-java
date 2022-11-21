@@ -2,6 +2,7 @@ package com.protas.swingtest;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -24,6 +25,7 @@ public class MainWindow extends JFrame{
     private JRadioButton modeButtonOval;
     private JRadioButton modeButtonWand;
     private JLabel typeLabel;
+    private JRadioButton modeButtonIrregular;
     private ButtonGroup modeButtonGroup;
     public static ImageSelectingType type;
 
@@ -44,6 +46,7 @@ public class MainWindow extends JFrame{
         modeButtonGroup.add(modeButtonRect);
         modeButtonGroup.add(modeButtonOval);
         modeButtonGroup.add(modeButtonWand);
+        modeButtonGroup.add(modeButtonIrregular);
 
         System.out.println(type);
         confirmButton.addActionListener(new ActionListener() {
@@ -72,6 +75,13 @@ public class MainWindow extends JFrame{
                 System.out.println(type);
             }
         });
+        modeButtonIrregular.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                type = ImageSelectingType.IRREGULAR;
+                System.out.println(type);
+            }
+        });
         confirmButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -81,8 +91,15 @@ public class MainWindow extends JFrame{
     }
 
     private void loadImage() {
+
+        // limit JFileChooser to select only from image type files
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", "jpg", "png", "gif", "jpeg");
+
         JFileChooser chooser = new JFileChooser("D:\\Projects\\Java Projects\\swingTest\\resources",
                 FileSystemView.getFileSystemView());
+
+        chooser.setFileFilter(filter);
+
         int r = chooser.showSaveDialog(null);
         if(r == JFileChooser.APPROVE_OPTION) {
             String path = chooser.getSelectedFile().getPath();
