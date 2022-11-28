@@ -14,7 +14,7 @@ import java.io.IOException;
 import static com.protas.swingtest.ImageLabel.bfImage;
 import static com.protas.swingtest.ImageLabel.toBufferedImage;
 
-public class MainWindow extends JFrame{
+public class MainWindow extends JFrame {
     private Toolkit toolkit;
     private JPanel mainPanel;
     private JButton confirmButton;
@@ -49,12 +49,6 @@ public class MainWindow extends JFrame{
         modeButtonGroup.add(modeButtonIrregular);
 
         System.out.println(type);
-        confirmButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("This button should load image to the imageLabel");
-            }
-        });
         modeButtonRect.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -93,7 +87,8 @@ public class MainWindow extends JFrame{
     private void loadImage() {
 
         // limit JFileChooser to select only from image type files
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", "jpg", "png", "gif", "jpeg");
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files",
+                "jpg", "png", "gif", "jpeg");
 
         JFileChooser chooser = new JFileChooser("D:\\Projects\\Java Projects\\swingTest\\resources",
                 FileSystemView.getFileSystemView());
