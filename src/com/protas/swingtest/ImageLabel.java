@@ -23,7 +23,7 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
     private Point cordsDragged = null;
     private final Color markingColor = new Color(0, 0, 0, 255);
     private HashSet<ImagePixel> setOfPoints;
-    public static double threshold =  8;//353.3384d; //0.3065d;
+    public static double threshold = 8;//353.3384d; //0.3065d;
     private ArrayList<Point> listOfPoints;
 
     public ImageLabel() {
@@ -34,7 +34,7 @@ public class ImageLabel extends JLabel implements MouseListener, MouseMotionList
         bfImageCopy = null;
 
         try {
-            bfImage = ImageIO.read(new File("D:\\Projects\\Java Projects\\swingTest\\resources\\images\\leMinion.jpg"));
+            bfImage = ImageIO.read(new File("D:\\Projects\\Java Projects\\image-marking-java\\resources\\images\\leMinion.jpg")); // D:\Projects\Java Projects\swingTest\resources\images\leMinion.jpg
         }
         catch(IOException e) {
             e.printStackTrace();

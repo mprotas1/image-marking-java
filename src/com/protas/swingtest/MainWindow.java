@@ -2,12 +2,13 @@ package com.protas.swingtest;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
@@ -26,6 +27,8 @@ public class MainWindow extends JFrame {
     private JRadioButton modeButtonWand;
     private JLabel typeLabel;
     private JRadioButton modeButtonIrregular;
+    private JSlider thresholdSlider;
+    private JLabel thresholdLabel;
     private ButtonGroup modeButtonGroup;
     public static ImageSelectingType type;
 
@@ -47,6 +50,9 @@ public class MainWindow extends JFrame {
         modeButtonGroup.add(modeButtonOval);
         modeButtonGroup.add(modeButtonWand);
         modeButtonGroup.add(modeButtonIrregular);
+
+        thresholdSlider.setValue((int) ImageLabel.threshold);
+        thresholdLabel.setText(thresholdLabel.getText() + " " + ImageLabel.threshold);
 
         System.out.println(type);
         modeButtonRect.addActionListener(new ActionListener() {
@@ -82,6 +88,13 @@ public class MainWindow extends JFrame {
                 loadImage();
             }
         });
+        thresholdSlider.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                ImageLabel.threshold = thresholdSlider.getValue();
+                thresholdLabel.setText("Threshold: " + ImageLabel.threshold);
+            }
+        });
     }
 
     private void loadImage() {
@@ -90,7 +103,7 @@ public class MainWindow extends JFrame {
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files",
                 "jpg", "png", "gif", "jpeg");
 
-        JFileChooser chooser = new JFileChooser("D:\\Projects\\Java Projects\\swingTest\\resources",
+        JFileChooser chooser = new JFileChooser("D:\\Projects\\Java Projects\\image-marking-java\\resources\\images",
                 FileSystemView.getFileSystemView());
 
         chooser.setFileFilter(filter);
